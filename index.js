@@ -1,34 +1,34 @@
 import express from 'express';
 import fetch from 'node-fetch';
-
+ 
 const app = express();
 app.use(express.json());
-
+ 
 app.get('/mcp', (req, res) => {
   res.json({
     jsonrpc: '2.0',
     result: {
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: 'catastro-mcp', version: '1.0.0' }
+      serverInfo: { name: 'catastro-mcp', version: '2.0.0' }
     }
   });
 });
-
+ 
 app.post('/mcp', async (req, res) => {
   const { method, params, id } = req.body;
-
+ 
   if (method === 'initialize') {
     return res.json({
       jsonrpc: '2.0', id,
       result: {
         protocolVersion: '2024-11-05',
         capabilities: { tools: {} },
-        serverInfo: { name: 'catastro-mcp', version: '1.0.0' }
+        serverInfo: { name: 'catastro-mcp', version: '2.0.0' }
       }
     });
   }
-
+ 
   if (method === 'tools/list') {
     return res.json({
       jsonrpc: '2.0', id,
@@ -62,28 +62,37 @@ app.post('/mcp', async (req, res) => {
       }
     });
   }
-
+ 
   if (method === 'tools/call') {
     const { name, arguments: args } = params;
     try {
       let url;
+ 
       if (name === 'buscar_por_referencia') {
-        url = 'https://ovc.catastro.meh.es/OVCSWLocalizacionRC/OVCCallejero.asmx/Consulta_DNPRC?RC=' + encodeURIComponent(args.referencia);
+        // ✅ INSPIRE WFS — mucho más estable que el SOAP anterior
+        url = 'https://ovc.catastro.meh.es/INSPIRE/wfsCP.aspx?service=wfs&version=2&request=getfeature&STOREDQUERIE_ID=GetParcel&srsname=EPSG:4326&REFCAT=' + encodeURIComponent(args.referencia);
+ 
       } else if (name === 'buscar_por_direccion') {
-        url = 'https://ovc.catastro.meh.es/OVCSWLocalizacionRC/OVCCallejero.asmx/Consulta_DNPRC?Provincia=MADRID&Municipio=MADRID&TipoVia=' + encodeURIComponent(args.tipo_via) + '&NomVia=' + encodeURIComponent(args.nombre_via) + '&Numero=' + encodeURIComponent(args.numero);
+        // ✅ OVCCallejeroCodigos — ruta correcta con /ovcservweb/
+        url = 'https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx/ConsultaNumero?Provincia=Madrid&Municipio=Madrid&TipoVia=' + encodeURIComponent(args.tipo_via) + '&NomVia=' + encodeURIComponent(args.nombre_via) + '&Numero=' + encodeURIComponent(args.numero);
+ 
       } else {
         return res.json({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Tool not found' } });
       }
-      const response = await fetch(url);
+ 
+      const response = await fetch(url, {
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CatastroMCP/2.0)' }
+      });
       const text = await response.text();
       return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text }] } });
+ 
     } catch (err) {
       return res.json({ jsonrpc: '2.0', id, error: { code: -32000, message: err.message } });
     }
   }
-
+ 
   return res.json({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' } });
 });
-
+ 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, '0.0.0.0', () => console.log('Catastro MCP server running on port ' + PORT));
