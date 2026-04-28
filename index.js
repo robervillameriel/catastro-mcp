@@ -86,8 +86,7 @@ app.post('/mcp', async (req, res) => {
         url = 'https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx/ConsultaNumero?Provincia=Madrid&Municipio=Madrid&TipoVia=' + encodeURIComponent(args.tipo_via) + '&NomVia=' + encodeURIComponent(args.nombre_via) + '&Numero=' + encodeURIComponent(args.numero);
 
       } else if (name === 'buscar_por_inmueble') {
-        url = 'https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx/ConsultaRCCCompleta?RefCat=' + encodeURIComponent(args.referencia);
-
+        url = 'https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx/Consulta_DNPRC?Provincia=Madrid&Municipio=Madrid&RC=' + encodeURIComponent(args.referencia);
       } else {
         return res.json({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Tool not found' } });
       }
