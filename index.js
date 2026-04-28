@@ -10,7 +10,7 @@ app.get('/mcp', (req, res) => {
     result: {
       protocolVersion: '2024-11-05',
       capabilities: { tools: {} },
-      serverInfo: { name: 'catastro-mcp', version: '3.0.0' }
+      serverInfo: { name: 'catastro-mcp', version: '4.0.0' }
     }
   });
 });
@@ -24,7 +24,7 @@ app.post('/mcp', async (req, res) => {
       result: {
         protocolVersion: '2024-11-05',
         capabilities: { tools: {} },
-        serverInfo: { name: 'catastro-mcp', version: '3.0.0' }
+        serverInfo: { name: 'catastro-mcp', version: '4.0.0' }
       }
     });
   }
@@ -68,6 +68,17 @@ app.post('/mcp', async (req, res) => {
               },
               required: ['referencia']
             }
+          },
+          {
+            name: 'buscar_subasta_boe',
+            description: 'Obtiene datos completos de una subasta del portal BOE dado su ID (ej. SUB-JA-2025-253326). Devuelve valor de tasación, precio mínimo de puja, importe del depósito, tramos, cantidad reclamada, referencia catastral y fechas de inicio y fin.',
+            inputSchema: {
+              type: 'object',
+              properties: {
+                idSub: { type: 'string', description: 'ID de la subasta, ej. SUB-JA-2025-253326' }
+              },
+              required: ['idSub']
+            }
           }
         ]
       }
@@ -87,12 +98,16 @@ app.post('/mcp', async (req, res) => {
 
       } else if (name === 'buscar_por_inmueble') {
         url = 'https://ovc.catastro.meh.es/ovcservweb/OVCSWLocalizacionRC/OVCCallejero.asmx/Consulta_DNPRC?Provincia=Madrid&Municipio=Madrid&RC=' + encodeURIComponent(args.referencia);
+
+      } else if (name === 'buscar_subasta_boe') {
+        url = 'https://subastas.boe.es/reg/soa/lote.php?idSub=' + encodeURIComponent(args.idSub) + '&ver=3&idLote=1';
+
       } else {
         return res.json({ jsonrpc: '2.0', id, error: { code: -32601, message: 'Tool not found' } });
       }
 
       const response = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CatastroMCP/3.0)' }
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; CatastroMCP/4.0)' }
       });
       const text = await response.text();
       return res.json({ jsonrpc: '2.0', id, result: { content: [{ type: 'text', text }] } });
